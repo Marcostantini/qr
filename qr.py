@@ -17,6 +17,7 @@ class State:
         self.volume_der = values[3]
         self.outflow_amount = values[4]
         self.outflow_der = values[5]
+        # self.num will be set depending on the position of this state in the states list
         self.num = num
         self.links = []
 
@@ -57,46 +58,58 @@ def state_index(states, test_state):
 def generate_states(init = State([0,0,0,0,0,0], 0)):
     states = [init]
     current_state = 0
+    # these are the derivatives to be applied to the inflow in cycle
     inflow_der_cycle = [0,1,0,-1]
     inflow_der = 0
     no_new = 0
     while no_new < len(possible_ders['Inflow']):
         # current number of states
         current_nos = len(states)
+        # use the last state generated but change the inflow derivative
         new_state = State(states[current_state].to_list())
         der = inflow_der_cycle[inflow_der % len(inflow_der_cycle)]
         new_state.set_inflow_der(der)
+        # if such state is new it gets added to the list of states
         if not in_states(states, new_state):
             new_state.set_num(len(states))
             states[current_state].add_link(new_state.num)
             states.append(new_state)
             current_state = new_state.num
+        # if it's a known states it gets linked to the current state because it's in the current state reach
         elif current_state != state_index(states, new_state):
             states[current_state].add_link(state_index(states, new_state))
             current_state = state_index(states, new_state)
         stop = False
         while not stop:
+            # a new state is generated following the rules in test_step()
             test_state = test_step(states[current_state])
+            # if it's a new states it gets added to the list of states and the loop terminates to allow a change in the inflow derivative
             if not in_states(states, test_state):
                 test_state.set_num(len(states))
                 states[current_state].add_link(test_state.num)
                 states.append(test_state)
                 current_state = test_state.num
                 stop = True
+            # if it's a known states it gets linked to the current state because it's in the current state reach
             elif current_state != state_index(states, test_state):
                 states[current_state].add_link(state_index(states, test_state))
                 current_state = state_index(states, test_state)
+            # if the test_state is the same as the last state visited the while loop stops
             else: stop = True
+        # if no states have been added the no_new counter increases
         if current_nos == len(states):
             no_new += 1
+        # if a new state has been found the no_new counter is set to 0
         else:
             no_new = 0
+        # change in the inflow derivative
         inflow_der += 1
+    # printing
     for state in states:
         print state.to_list()
     # for state in states:
     #     print state.links
-    print len(states)
+    # print len(states)
 
 def test_step(state):
     test_state = State(state.to_list())
