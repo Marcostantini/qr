@@ -74,22 +74,19 @@ def generate_states(init = State([0,0,0,0,0,0], 0)):
         elif current_state != state_index(states, new_state):
             states[current_state].add_link(state_index(states, new_state))
             current_state = state_index(states, new_state)
-        change = True
-        # counter = 0
-        # while change and counter < 4:
-        while change:
+        stop = False
+        while not stop:
             test_state = test_step(states[current_state])
             if not in_states(states, test_state):
                 test_state.set_num(len(states))
                 states[current_state].add_link(test_state.num)
                 states.append(test_state)
                 current_state = test_state.num
-                # change = False
-                # counter+=1
+                stop = True
             elif current_state != state_index(states, test_state):
                 states[current_state].add_link(state_index(states, test_state))
                 current_state = state_index(states, test_state)
-            else: change = False
+            else: stop = True
         if current_nos == len(states):
             no_new += 1
         else:
@@ -129,6 +126,10 @@ def test_step(state):
     # inflow negative derivative changes inflow amount
     if state.inflow_der == -1:
         test_state.inflow_amount = max(test_state.inflow_amount - 1, min(possible_amounts['Inflow']))
+    # ensure no negative derivative when amount is 0
+    if test_state.inflow_amount == 0 and test_state.inflow_der == -1: test_state.inflow_der = 0
+    if test_state.volume_amount == 0 and test_state.volume_der == -1: test_state.volume_der = 0
+    if test_state.outflow_amount == 0 and test_state.outflow_der == -1: test_state.outflow_der = 0
     return test_state
 
 if __name__ == "__main__":
