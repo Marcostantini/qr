@@ -165,11 +165,11 @@ def draw_state_graph(states):
     # Add nodes
     for state in states:
         graph.add_node(state.num)
-        labels[state] = state.num
+        labels[state.num] = state.num
     # Add edges
     for state in states:
         for destination in state.links:
-            graph.add_edge(state, destination)
+            graph.add_edge(state.num, destination)
     nx.draw(graph, labels=labels)
     plt.show()
 
