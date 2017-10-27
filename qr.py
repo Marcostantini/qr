@@ -7,7 +7,7 @@ variables = ['Inflow', 'Volume', 'Outflow']
 possible_amounts = {'Inflow': [0,1], 'Volume': [0,1,2], 'Outflow': [0,1,2]}
 possible_ders = {'Inflow': [-1,0,1], 'Volume': [-1,0,1], 'Outflow': [-1,0,1]}
 amount_dict = {0: 'zero', 1: 'positive', 2: 'max'}
-der_dict = {-1: 'negative', 0: 'steady', 1: 'positive'}
+der_dict = {-1: 'negative', 0: 'zero', 1: 'positive'}
 
 class State:
     def __init__(self, values, num = -1):
@@ -20,6 +20,8 @@ class State:
         # self.num will be set depending on the position of this state in the states list
         self.num = num
         self.links = []
+        self.intra_state_trace = ""
+        self.inter_state_trace = ""
 
     def set_num(self, num):
         self.num = num
@@ -39,6 +41,22 @@ class State:
         if self.to_list() == other.to_list():
             equal = True
         return equal
+
+    def __str__(self):
+        """ A human-readable string representation of the state.
+        Intended to be used for the trace output.
+        """
+        inflow_astr = amount_dict[self.inflow_amount]
+        inflow_dstr = der_dict[self.inflow_der]
+        volume_astr = amount_dict[self.volume_amount]
+        volume_dstr = der_dict[self.volume_der]
+        outflow_astr = amount_dict[self.outflow_amount]
+        outflow_dstr = der_dict[self.outflow_der]
+
+        return (
+            "\n\tThe inflow is " + inflow_astr + " and has a " + inflow_dstr + " derivative." +
+            "\n\tThe volume is " + volume_astr + " and has a " + volume_dstr + " derivative." +
+            "\n\tThe outflow is " + outflow_astr + " and has a " + outflow_dstr + " derivative.")
 
 def in_states(states, test_state):
     in_states = False
@@ -115,48 +133,73 @@ def generate_states(init = State([0,0,0,0,0,0], 0)):
         # after set_up_steps the current state is randomly picked from the states generated
         if exo_steps > set_up_steps:
             current_state = randint(0, len(states)-1)
-    # printing
-    for i, state in enumerate(states):
-        print(str(i) + ": " + str(state.to_list()))
-    for i, state in enumerate(states):
-        print(str(i) + ": " + str(state.links))
+    # testing
+    #for i, state in enumerate(states):
+    #    print(str(i) + ": " + str(state.to_list()))
+    #for i, state in enumerate(states):
+    #    print(str(i) + ": " + str(state.links))
     return states
 
 def test_step(state):
+    print("\nState " + str(state.num) + str(state))
+    intra_state_trace = ""
+    inter_state_trace = ""
+
     test_state = State(state.to_list())
+
     # volume positive derivative changes volume amount
     if state.volume_der == 1:
+        inter_state_trace += "\n\t- The volume's derivative is positive, so it must increase."
         test_state.volume_amount = min(test_state.volume_amount + 1, max(possible_amounts['Volume']))
     # outflow positive derivative changes outflow amount
     if state.outflow_der == 1:
+        inter_state_trace += "\n\t- The outflow's derivative is positive, so it must increase."
         test_state.outflow_amount = min(test_state.outflow_amount + 1, max(possible_amounts['Outflow']))
     # volume negative derivative changes volume amount
     if state.volume_der == -1:
+        inter_state_trace += "\n\t- The volume's derivative is negative, so it must decrease."
         test_state.volume_amount = max(test_state.volume_amount - 1, min(possible_amounts['Volume']))
     # outflow negative derivative changes outflow amount
     if state.outflow_der == -1:
+        inter_state_trace += "\n\t- The outflow's derivative is negative, so it must decrease."
         test_state.outflow_amount = max(test_state.outflow_amount - 1, min(possible_amounts['Outflow']))
+
     # outflow amount influences volume derivative
-    if state.outflow_amount >= 1 and state.inflow_amount < 1:
-        test_state.volume_der = max(test_state.volume_der - 1, min(possible_ders['Volume']))
+    if test_state.outflow_amount >= 1 and test_state.inflow_amount < 1:
+        intra_state_trace += "\n\t- The outflow is positive, so the volume's derivative must decrease."
+        test_state.volume_der = max(test_state.volume_der - 1, min(possible_ders['Volume']))        
     # inflow amount influences volume derivative
-    if state.inflow_amount >= 1:
+    if test_state.inflow_amount >= 1:
+        intra_state_trace += "\n\t- The inflow is positive, so the volume's derivative must increase."
         test_state.volume_der = min(test_state.volume_der + 1, max(possible_ders['Volume']))
-    # outflow derivative is equal to volume derivative
-    test_state.outflow_der = test_state.volume_der
+    if test_state.outflow_der != test_state.volume_der:
+        intra_state_trace += "\n\t- The volume's derivative must be equal to the outflow's derivative."
+        # outflow derivative is equal to volume derivative
+        test_state.outflow_der = test_state.volume_der    
+
     # inflow positive derivative changes inflow amount
     if state.inflow_der == 1:
+        inter_state_trace += "\n\t- The inflow's derivative is positive, so it must increase."
         test_state.inflow_amount = min(test_state.inflow_amount + 1, max(possible_amounts['Inflow']))
     # inflow negative derivative changes inflow amount
     if state.inflow_der == -1:
+        inter_state_trace += "\n\t- The inflow's derivative is negative, so it must decrease."
         test_state.inflow_amount = max(test_state.inflow_amount - 1, min(possible_amounts['Inflow']))
     # ensure no negative derivative when amount is 0
-    if test_state.inflow_amount == 0 and test_state.inflow_der == -1:
-        test_state.inflow_der = 0
-    if test_state.volume_amount == 0 and test_state.volume_der == -1:
-        test_state.volume_der = 0
-    if test_state.outflow_amount == 0 and test_state.outflow_der == -1:
-        test_state.outflow_der = 0
+    if test_state.inflow_amount == 0 and test_state.inflow_der == -1: test_state.inflow_der = 0
+    if test_state.volume_amount == 0 and test_state.volume_der == -1: test_state.volume_der = 0
+    if test_state.outflow_amount == 0 and test_state.outflow_der == -1: test_state.outflow_der = 0
+
+    print("\n\tInter-state transitions: " + ("None" if inter_state_trace == "" else inter_state_trace))
+    if inter_state_trace != "":
+        print("\n\tResults:" + str(test_state))
+    print("\n\tIntra-state transitions: " + ("None" if intra_state_trace == "" else intra_state_trace))
+    if inter_state_trace != "" or intra_state_trace != "":
+        print("\nThese transitions lead to the next state.")
+    else:
+        print("\nThis is a final state.")
+    print("-"*50)
+
     return test_state
 
 def draw_state_graph(states):
