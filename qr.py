@@ -3,6 +3,9 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import os
 
+import warnings
+warnings.filterwarnings("ignore")
+
 variables = ['Inflow', 'Volume', 'Outflow']
 
 possible_amounts = {'Inflow': [0,1], 'Volume': [0,1,2], 'Outflow': [0,1,2]}
@@ -145,11 +148,13 @@ def generate_states(init = State([0,0,0,0,0,0], 0)):
         # after set_up_steps the current state is randomly picked from the states generated
         if exo_steps > set_up_steps:
             current_state = randint(0, len(states)-1)
-    # testing
-    #for i, state in enumerate(states):
-    #    print(str(i) + ": " + str(state.to_list()))
-    #for i, state in enumerate(states):
-    #    print(str(i) + ": " + str(state.links))
+    
+    print("The following states were generated:")
+    for i, state in enumerate(states):
+        print(str(i) + ": " + str(state.to_list()))
+    print("Transitions between states:")
+    for i, state in enumerate(states):
+        print(str(i) + ": " + str(state.links))
     return states, prune_transitions(complete_trace, states)
 
 def test_step(state):    
@@ -229,9 +234,9 @@ def draw_state_graph(states):
     f.savefig("state_graph.png")
 
 def generate_learner_document(trace):
-    filename = "LearnerDocument.tex"
+    filename = "LearnerDocument"
     head = open("texhead")
-    learner_doc = open(filename, "w")
+    learner_doc = open(filename + ".tex", "w")
     learner_doc.write(head.read())
 
     learner_doc.write(trace)
@@ -241,9 +246,10 @@ def generate_learner_document(trace):
     learner_doc.close()
 
     os.system("pdflatex " + filename + " -quiet")
-
+    print(filename + ".pdf saved succesfully.")
 
 if __name__ == "__main__":
-    states, trace = generate_states()
+    print("Generating states...")
+    states, trace = generate_states()    
     draw_state_graph(states)
     generate_learner_document(trace)
