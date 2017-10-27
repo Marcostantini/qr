@@ -17,6 +17,16 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Latex files
+*.tex
+*.aux
+*.log
+*.pdf
+
+# Automatically generated files
+state_graph.png
+
+
 # =========================
 # Operating System Files
 # =========================
@@ -45,3 +55,4 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+

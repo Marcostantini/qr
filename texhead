@@ -1,0 +1,34 @@
+\documentclass[10pt,a4paper]{report}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\setlength{\parindent}{0pt}
+\usepackage[margin=1in]{geometry}
+\title{The Behaviour of a Container System}
+\author{-Automatically Generated Document-}
+\begin{document}
+\maketitle
+\section{System Description}
+Greetings, learner. In this document we will describe the different states and transitions that can occur in a system where a tap pours water into a container, and a sink drains water out of the container.
+
+There are three fundamental quantities in this system: the \textbf{inflow}, \textbf{volume} and \textbf{outflow}. They are related among each other according to the following causal model:
+
+\begin{figure}[hbtp]
+\centering
+\includegraphics[scale=0.75]{causal_model.PNG}
+\end{figure}
+
+When changing the derivative of the inflow, a state can transition to another state. For this system, we obtain 24 states that, together with their transitions, can be visualized in the following state graph, where the first state has label 0:
+
+\begin{figure}[hbtp]
+\centering
+\includegraphics[scale=0.75]{state_graph.PNG}
+\end{figure}
+
+This figure will serve as a reference to understand how the system behaves both in terms of intra-state transitions and inter-state transitions, which are detailed next.
+\newpage
+
+\section{State Descriptions and Transitions}
+

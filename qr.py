@@ -1,6 +1,7 @@
 from random import randint
 import networkx as nx
 import matplotlib.pyplot as plt
+import os
 
 variables = ['Inflow', 'Volume', 'Outflow']
 
@@ -54,9 +55,9 @@ class State:
         outflow_dstr = der_dict[self.outflow_der]
 
         return (
-            "\n\tThe inflow is " + inflow_astr + " and has a " + inflow_dstr + " derivative." +
-            "\n\tThe volume is " + volume_astr + " and has a " + volume_dstr + " derivative." +
-            "\n\tThe outflow is " + outflow_astr + " and has a " + outflow_dstr + " derivative.")
+            "\nThe inflow is " + inflow_astr + " and has a " + inflow_dstr + " derivative.\n" +
+            "\nThe volume is " + volume_astr + " and has a " + volume_dstr + " derivative.\n" +
+            "\nThe outflow is " + outflow_astr + " and has a " + outflow_dstr + " derivative.\n")
 
 def in_states(states, test_state):
     in_states = False
@@ -73,7 +74,16 @@ def state_index(states, test_state):
         else: index += 1
     return index
 
+def prune_transitions(trace, states):
+    n_states = len(states) - 1
+    idx = trace.index(str(n_states))
+    extra = trace[idx + 1:]
+    last = extra.index("hrulefill")
+    return trace[:idx+last-1]
+
 def generate_states(init = State([0,0,0,0,0,0], 0)):
+    complete_trace = ""
+    trace_is_complete = False
     states = [init]
     current_state = 0
     # these are the derivatives to be applied to the inflow in cycle
@@ -108,7 +118,9 @@ def generate_states(init = State([0,0,0,0,0,0], 0)):
         stop = False
         while not stop:
             # a new state is generated following the rules in test_step()
-            test_state = test_step(states[current_state])
+            test_state, state_trace = test_step(states[current_state])
+            if not trace_is_complete:
+                complete_trace += state_trace
             # if it's a new states it gets added to the list of states and the loop terminates to allow a change in the inflow derivative
             if not in_states(states, test_state) and exo_steps <= set_up_steps:
                 test_state.set_num(len(states))
@@ -138,10 +150,9 @@ def generate_states(init = State([0,0,0,0,0,0], 0)):
     #    print(str(i) + ": " + str(state.to_list()))
     #for i, state in enumerate(states):
     #    print(str(i) + ": " + str(state.links))
-    return states
+    return states, prune_transitions(complete_trace, states)
 
-def test_step(state):
-    print("\nState " + str(state.num) + str(state))
+def test_step(state):    
     intra_state_trace = ""
     inter_state_trace = ""
 
@@ -149,58 +160,58 @@ def test_step(state):
 
     # volume positive derivative changes volume amount
     if state.volume_der == 1:
-        inter_state_trace += "\n\t- The volume's derivative is positive, so it must increase."
+        inter_state_trace += "\n\\item The volume's derivative is positive, so it must increase."
         test_state.volume_amount = min(test_state.volume_amount + 1, max(possible_amounts['Volume']))
     # outflow positive derivative changes outflow amount
     if state.outflow_der == 1:
-        inter_state_trace += "\n\t- The outflow's derivative is positive, so it must increase."
+        inter_state_trace += "\n\\item The outflow's derivative is positive, so it must increase."
         test_state.outflow_amount = min(test_state.outflow_amount + 1, max(possible_amounts['Outflow']))
     # volume negative derivative changes volume amount
     if state.volume_der == -1:
-        inter_state_trace += "\n\t- The volume's derivative is negative, so it must decrease."
+        inter_state_trace += "\n\\item The volume's derivative is negative, so it must decrease."
         test_state.volume_amount = max(test_state.volume_amount - 1, min(possible_amounts['Volume']))
     # outflow negative derivative changes outflow amount
     if state.outflow_der == -1:
-        inter_state_trace += "\n\t- The outflow's derivative is negative, so it must decrease."
+        inter_state_trace += "\n\\item The outflow's derivative is negative, so it must decrease."
         test_state.outflow_amount = max(test_state.outflow_amount - 1, min(possible_amounts['Outflow']))
 
     # outflow amount influences volume derivative
     if test_state.outflow_amount >= 1 and test_state.inflow_amount < 1:
-        intra_state_trace += "\n\t- The outflow is positive, so the volume's derivative must decrease."
+        intra_state_trace += "\n\\item The outflow is positive, so the volume's derivative must decrease."
         test_state.volume_der = max(test_state.volume_der - 1, min(possible_ders['Volume']))        
     # inflow amount influences volume derivative
     if test_state.inflow_amount >= 1:
-        intra_state_trace += "\n\t- The inflow is positive, so the volume's derivative must increase."
+        intra_state_trace += "\n\\item The inflow is positive, so the volume's derivative must increase."
         test_state.volume_der = min(test_state.volume_der + 1, max(possible_ders['Volume']))
     if test_state.outflow_der != test_state.volume_der:
-        intra_state_trace += "\n\t- The volume's derivative must be equal to the outflow's derivative."
+        intra_state_trace += "\n\\item The volume's derivative must be equal to the outflow's derivative."
         # outflow derivative is equal to volume derivative
         test_state.outflow_der = test_state.volume_der    
 
     # inflow positive derivative changes inflow amount
     if state.inflow_der == 1:
-        inter_state_trace += "\n\t- The inflow's derivative is positive, so it must increase."
+        inter_state_trace += "\n\\item The inflow's derivative is positive, so it must increase."
         test_state.inflow_amount = min(test_state.inflow_amount + 1, max(possible_amounts['Inflow']))
     # inflow negative derivative changes inflow amount
     if state.inflow_der == -1:
-        inter_state_trace += "\n\t- The inflow's derivative is negative, so it must decrease."
+        inter_state_trace += "\n\\item The inflow's derivative is negative, so it must decrease."
         test_state.inflow_amount = max(test_state.inflow_amount - 1, min(possible_amounts['Inflow']))
     # ensure no negative derivative when amount is 0
     if test_state.inflow_amount == 0 and test_state.inflow_der == -1: test_state.inflow_der = 0
     if test_state.volume_amount == 0 and test_state.volume_der == -1: test_state.volume_der = 0
     if test_state.outflow_amount == 0 and test_state.outflow_der == -1: test_state.outflow_der = 0
 
-    print("\n\tInter-state transitions: " + ("None" if inter_state_trace == "" else inter_state_trace))
+    state_trace = "\n\\textbf{State " + str(state.num) + "}" + "\n\n\\setlength{\\leftskip}{10pt}" + str(state)
+    state_trace += "\n\\textit{Inter-state transitions}: " + ("None\n" if inter_state_trace == "" else "\n\\begin{itemize}" + inter_state_trace + "\n\\end{itemize}")
     if inter_state_trace != "":
-        print("\n\tResults:" + str(test_state))
-    print("\n\tIntra-state transitions: " + ("None" if intra_state_trace == "" else intra_state_trace))
-    if inter_state_trace != "" or intra_state_trace != "":
-        print("\nThese transitions lead to the next state.")
-    else:
-        print("\nThis is a final state.")
-    print("-"*50)
+        state_trace += "\nResults:\n" + str(test_state)
+    state_trace += "\n\\textit{Intra-state transitions}: " + ("None\n" if intra_state_trace == "" else "\n\\begin{itemize}" + intra_state_trace + "\n\\end{itemize}") + "\n"
+    state_trace += "\\setlength{\\leftskip}{0pt}\n"
+    if not (inter_state_trace != "" or intra_state_trace != ""):
+        state_trace += "\nThis is a final state.\n"
+    state_trace += "\n\\hrulefill\n"
 
-    return test_state
+    return test_state, state_trace
 
 def draw_state_graph(states):
     graph = nx.DiGraph()
@@ -213,10 +224,26 @@ def draw_state_graph(states):
     for state in states:
         for destination in state.links:
             graph.add_edge(state.num, destination)
+    f = plt.figure()
     nx.draw(graph, labels=labels)
-    plt.show()
+    f.savefig("state_graph.png")
+
+def generate_learner_document(trace):
+    filename = "LearnerDocument.tex"
+    head = open("texhead")
+    learner_doc = open(filename, "w")
+    learner_doc.write(head.read())
+
+    learner_doc.write(trace)
+    learner_doc.write("\n\end{document}")
+
+    head.close()
+    learner_doc.close()
+
+    os.system("pdflatex " + filename + " -quiet")
 
 
 if __name__ == "__main__":
-    states = generate_states()
+    states, trace = generate_states()
     draw_state_graph(states)
+    generate_learner_document(trace)
