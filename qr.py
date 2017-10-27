@@ -1,8 +1,6 @@
-import math
-import json
-import random
 from random import randint
-import numpy as np
+import networkx as nx
+import matplotlib.pyplot as plt
 
 variables = ['Inflow', 'Volume', 'Outflow']
 
@@ -119,10 +117,10 @@ def generate_states(init = State([0,0,0,0,0,0], 0)):
             current_state = randint(0, len(states)-1)
     # printing
     for i, state in enumerate(states):
-        print str(i) + ": " + str(state.to_list())
+        print(str(i) + ": " + str(state.to_list()))
     for i, state in enumerate(states):
-        print str(i) + ": " + str(state.links)
-    # print len(states)
+        print(str(i) + ": " + str(state.links))
+    return states
 
 def test_step(state):
     test_state = State(state.to_list())
@@ -161,5 +159,21 @@ def test_step(state):
         test_state.outflow_der = 0
     return test_state
 
+def draw_state_graph(states):
+    graph = nx.DiGraph()
+    labels = {}
+    # Add nodes
+    for state in states:
+        graph.add_node(state.num)
+        labels[state] = state.num
+    # Add edges
+    for state in states:
+        for destination in state.links:
+            graph.add_edge(state, destination)
+    nx.draw(graph, labels=labels)
+    plt.show()
+
+
 if __name__ == "__main__":
-    generate_states()
+    states = generate_states()
+    draw_state_graph(states)
