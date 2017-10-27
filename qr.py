@@ -68,15 +68,10 @@ def generate_states(init = State([0,0,0,0,0,0], 0)):
     set_up_steps = 100
     iterations = 1000
     while exo_steps < iterations:
-    # while exo_steps < len(possible_ders['Inflow']):
         # current number of states
         current_nos = len(states)
         # use the last state generated but change the inflow derivative
         new_state = State(states[current_state].to_list())
-        # if (der == 1 or der == -1):
-        #     der = 0
-        # if der == 0:
-        #     der = -1 if random.uniform(0, 1) > 0.5 else 1
         der = inflow_der_cycle[inflow_der % len(inflow_der_cycle)]
         if der != 0 and der == -new_state.inflow_der:
             inflow_der += 1
@@ -85,7 +80,6 @@ def generate_states(init = State([0,0,0,0,0,0], 0)):
             der = 0
         new_state.set_inflow_der(der)
         # if such state is new it gets added to the list of states
-        # if not in_states(states, new_state):
         if not in_states(states, new_state) and exo_steps <= set_up_steps:
             new_state.set_num(len(states))
             states[current_state].add_link(new_state.num)
@@ -100,7 +94,6 @@ def generate_states(init = State([0,0,0,0,0,0], 0)):
             # a new state is generated following the rules in test_step()
             test_state = test_step(states[current_state])
             # if it's a new states it gets added to the list of states and the loop terminates to allow a change in the inflow derivative
-            # if not in_states(states, test_state):
             if not in_states(states, test_state) and exo_steps <= set_up_steps:
                 test_state.set_num(len(states))
                 states[current_state].add_link(test_state.num)
@@ -121,6 +114,7 @@ def generate_states(init = State([0,0,0,0,0,0], 0)):
             exo_steps = 0
         # change in the inflow derivative
         inflow_der += 1
+        # after set_up_steps the current state is randomly picked from the states generated
         if exo_steps > set_up_steps:
             current_state = randint(0, len(states)-1)
     # printing
